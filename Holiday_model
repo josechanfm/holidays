@@ -1,0 +1,35 @@
+class Holiday_model extends MY_Model {
+	protected $CI;
+
+	public function __construct()
+	{
+		$this->CI =& get_instance();
+		$this->CI->load->library('CalFileParser');
+	}
+	
+	function get_source($year=null){
+		$cal = new CalFileParser();
+
+		$list_ch = $cal->parse('https://www.gov.mo/zh-hant/public-holidays/ical/');
+		$list_pt = $cal->parse('https://www.gov.mo/pt/public-holidays/ical/');
+		$list_en = $cal->parse('https://www.gov.mo/en/public-holidays/ical/');
+		$holidays=array();
+		foreach($list_ch as $key=>$item){
+			$holiday=array(
+				'start'=>$item['DTSTART']->format('Y-m-d H:i:s a'),
+				'end'=>$item['DTEND']->format('Y-m-d H:i:s a'),
+				'type'=>$item['DTSTART']->format('a'),
+				'name_c'=>$item['SUMMARY'],
+				'name_p'=>$list_pt[$key]['SUMMARY'],
+				'name_e'=>$list_en[$key]['SUMMARY']
+			);
+			$sql=$this->db->insert_string('holidays',$holiday);
+			$sql=str_replace('INSERT INTO','INSERT IGNORE INTO',$sql);
+			//echo $sql;
+			//ho '<br>';
+			$this->db->query($sql);
+			$holidays[]=$holiday;
+		}
+		//$this->CI->db->insert_batch('holidays',$holidays);
+		return $holidays;
+	}
